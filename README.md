@@ -1,1 +1,2 @@
 # Serilog.Sinks.GoogleAnalytics
+

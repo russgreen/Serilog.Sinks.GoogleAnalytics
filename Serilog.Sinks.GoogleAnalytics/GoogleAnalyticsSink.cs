@@ -9,19 +9,28 @@ namespace Serilog.Sinks.GoogleAnalytics;
 
 public class GoogleAnalyticsSink : ILogEventSink, IDisposable
 {
-    private readonly string _measurementId;
-    private readonly string _apiSecret;
-    private readonly string _clientId;
+    private readonly GoogleAnalyticsOptions _options;
+
     private readonly HttpClient _httpClient;
     private readonly string _endpoint;
 
-    public GoogleAnalyticsSink(string measurementId, string apiSecret, string clientId)
+    public GoogleAnalyticsSink(GoogleAnalyticsOptions options)
     {
-        _measurementId = measurementId ?? throw new ArgumentNullException(nameof(measurementId));
-        _apiSecret = apiSecret ?? throw new ArgumentNullException(nameof(apiSecret));
-        _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        if (string.IsNullOrWhiteSpace(_options.MeasurementId))
+        {
+            throw new ArgumentException("MeasurementId required");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.ApiSecret))
+        {
+            throw new ArgumentException("ApiSecret required");
+        }
+
+        _options.ClientId = Environment.MachineName.GetHashCode().ToString("X");
+
         _httpClient = new HttpClient();
-        _endpoint = $"https://www.google-analytics.com/mp/collect?measurement_id={_measurementId}&api_secret={_apiSecret}";
+        _endpoint = $"https://www.google-analytics.com/mp/collect?measurement_id={_options.MeasurementId}&api_secret={_options.ApiSecret}";
     }
 
     public void Emit(LogEvent logEvent)
@@ -45,7 +54,7 @@ public class GoogleAnalyticsSink : ILogEventSink, IDisposable
         var timestamp = logEvent.Timestamp.UtcDateTime.ToString("o");
         // Google Analytics 4 Measurement Protocol event format
         return $@"{{" +
-               $"\"client_id\": \"{_clientId}\"," +
+               $"\"client_id\": \"{_options.ClientId}\"," +
                "\"events\": [{" +
                "\"name\": \"log_event\"," +
                "\"params\": {" +
