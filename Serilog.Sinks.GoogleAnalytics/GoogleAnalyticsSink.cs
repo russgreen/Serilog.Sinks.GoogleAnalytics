@@ -17,6 +17,7 @@ public class GoogleAnalyticsSink : ILogEventSink, IDisposable
     public GoogleAnalyticsSink(GoogleAnalyticsOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+
         if (string.IsNullOrWhiteSpace(_options.MeasurementId))
         {
             throw new ArgumentException("MeasurementId required");
@@ -27,7 +28,10 @@ public class GoogleAnalyticsSink : ILogEventSink, IDisposable
             throw new ArgumentException("ApiSecret required");
         }
 
-        _options.ClientId = Environment.MachineName.GetHashCode().ToString("X");
+        if(string.IsNullOrWhiteSpace(_options.ClientId))
+        {
+            _options.ClientId = Environment.MachineName.GetHashCode().ToString("X");
+        }
 
         _httpClient = new HttpClient();
         _endpoint = $"https://www.google-analytics.com/mp/collect?measurement_id={_options.MeasurementId}&api_secret={_options.ApiSecret}";
