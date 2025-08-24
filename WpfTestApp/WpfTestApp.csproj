@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<!--IOC-->
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.*" />
+
+		<!--Logging-->
+		<PackageReference Include="Serilog.Sinks.Debug" Version="2.*" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Serilog.Sinks.GoogleAnalytics\Serilog.Sinks.GoogleAnalytics.csproj" />
+	</ItemGroup>
+	
+</Project>
