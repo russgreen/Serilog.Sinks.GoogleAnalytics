@@ -9,12 +9,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.Sinks.GoogleAnalyti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfTestApp", "WpfTestApp\WpfTestApp.csproj", "{39BD3199-8BC8-36E1-DE74-E54F743C08B1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "build\_build.csproj", "{EDB6D421-3F22-44D0-BE63-34549272662C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EDB6D421-3F22-44D0-BE63-34549272662C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDB6D421-3F22-44D0-BE63-34549272662C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6AF3671-81A8-50CF-88E4-A7055C931834}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C6AF3671-81A8-50CF-88E4-A7055C931834}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6AF3671-81A8-50CF-88E4-A7055C931834}.Release|Any CPU.ActiveCfg = Release|Any CPU

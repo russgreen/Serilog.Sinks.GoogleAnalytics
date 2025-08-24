@@ -4,17 +4,32 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<LangVersion>Latest</LangVersion>
 		<VersionPrefix>1.0.0</VersionPrefix>
+		<LangVersion>latest</LangVersion>
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageType>Dependency</PackageType>
+		<PackageId>Serilog.Sinks.GoogleAnalytics</PackageId>
 		<Authors>Russ Green</Authors>
 		<Description>AppCenter sink for Serilog updated to latest AppCenter dependancies.</Description>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<!--<GeneratePackageOnBuild>True</GeneratePackageOnBuild>-->
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/russgreen/Serilog.Sinks.GoogleAnalytics</RepositoryUrl>
-		<PackageProjectUrl>https://github.com/russgreen/Serilog.Sinks.GoogleAnalytics</PackageProjectUrl>
 		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/russgreen/Serilog.Sinks.GoogleAnalytics</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/russgreen/Serilog.Sinks.GoogleAnalytics</PackageProjectUrl>	
 
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<DebugType>portable</DebugType>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+	
   <ItemGroup>
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="5.0.0" />
