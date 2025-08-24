@@ -1,4 +1,5 @@
 ﻿using Serilog.Configuration;
+using Serilog.Sinks.PeriodicBatching;
 using System;
 
 namespace Serilog.Sinks.GoogleAnalytics;
@@ -17,10 +18,19 @@ public static class GoogleAnalyticsLoggerConfigurationExtensions
             Action<GoogleAnalyticsOptions> configure,
             Serilog.Events.LogEventLevel restrictedToMinimumLevel = Serilog.Events.LogEventLevel.Information)
     {
+        if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+
         var opts = new GoogleAnalyticsOptions();
         configure(opts);
 
-        var sink = new GoogleAnalyticsSink(opts);
-        return sinkConfiguration.Sink(sink, restrictedToMinimumLevel);
+        var inner = new GoogleAnalyticsSink(opts);
+        var batching = new PeriodicBatchingSink(inner, new PeriodicBatchingSinkOptions
+        {
+            BatchSizeLimit = opts.BatchSizeLimit > 0 ? opts.BatchSizeLimit : 40,
+            Period = opts.FlushPeriod > TimeSpan.Zero ? opts.FlushPeriod : TimeSpan.FromSeconds(5),
+            EagerlyEmitFirstEvent = true
+        });
+        return sinkConfiguration.Sink(batching, restrictedToMinimumLevel);
     }
 }
