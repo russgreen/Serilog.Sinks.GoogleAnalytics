@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Management;
 
 namespace WpfTestApp;
 
@@ -26,6 +27,7 @@ internal static class Host
 
         var cultureInfo = Thread.CurrentThread.CurrentCulture;
         var regionInfo = new RegionInfo(cultureInfo.LCID);
+        var clientId = GetProcessorId();
 
         Serilog.Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
@@ -36,7 +38,7 @@ internal static class Host
             {
                 opts.MeasurementId = "##MEASUREMENTID##";
                 opts.ApiSecret = "##APISECRET##";
-                opts.ClientId = Environment.MachineName.GetHashCode().ToString();
+                opts.ClientId = clientId;
 
                 opts.FlushPeriod = TimeSpan.FromSeconds(1);
                 opts.BatchSizeLimit = 1;
@@ -44,7 +46,7 @@ internal static class Host
                 opts.IncludePredicate = e => e.Properties.ContainsKey("UsageTracking");            
 
                 opts.GlobalParams["app_version"] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString();
-                opts.GlobalParams["region"] = regionInfo.EnglishName ?? "unknown";
+                opts.GlobalParams["app_country"] = regionInfo.EnglishName;
             })
             .CreateLogger();
 
@@ -75,6 +77,18 @@ internal static class Host
     public static T GetService<T>() where T : class
     {
         return _host.Services.GetService(typeof(T)) as T;
+    }
+
+    private static string GetProcessorId()
+    {
+        var processorId = string.Empty;
+        var searcher = new ManagementObjectSearcher("select ProcessorId from Win32_Processor");
+        foreach (var obj in searcher.Get())
+        {
+            processorId = obj["ProcessorId"]?.ToString();
+            break;
+        }
+        return processorId;
     }
 }
 
