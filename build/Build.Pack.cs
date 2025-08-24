@@ -18,10 +18,14 @@ partial class Build
 
             foreach (var configuration in packConfigurations)
             {
-                DotNetPack(settings => settings
-                    .SetConfiguration(configuration)
-                    .SetOutputDirectory(ArtifactsDirectory)
-                    .SetVerbosity(DotNetVerbosity.minimal));
+                if (configuration.StartsWith("Release"))
+                {
+                    DotNetPack(settings => settings
+                        .SetConfiguration(configuration)
+                        .SetOutputDirectory(ArtifactsDirectory)
+                        .SetVerbosity(DotNetVerbosity.minimal));
+                }
+
             }
         });
 
