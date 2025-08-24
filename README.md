@@ -156,7 +156,7 @@ loggerConfiguration.WriteTo.GoogleAnalytics(opts =>
 ## GA4 Limits & Considerations
 
 - Max 25 events per request (enforced by sink subdivision)
-- Excessive volume or PII can violate GA Terms – ensure compliance
+- Excessive volume or PII can violate GA Terms Â– ensure compliance
 - GA4 is analytics-focused; delivery latency is not guaranteed
 - GA sampling / retention policies apply
 
@@ -215,9 +215,6 @@ PRs & issues welcome. Please add/extend unit tests for new behaviors.
 
 This project is not an official Google product. Use at your own risk and ensure compliance with Google Analytics Terms of Service.
 
-## License
-
-(Choose and add a license file – e.g., MIT, Apache-2.0.)
 
 ---
 Made with Serilog ? and the GA4 Measurement Protocol.
