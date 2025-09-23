@@ -39,19 +39,28 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
     public async Task EmitBatchAsync(IEnumerable<LogEvent> batch)
     {
         if (batch == null)
+        {
             return;
+        }
 
         // Apply predicate filter early
         var filtered = _options.IncludePredicate != null ? batch.Where(e => _options.IncludePredicate(e)) : batch;
         var eventsList = filtered.ToList();
-        if (eventsList.Count == 0) return;
+        if (eventsList.Count == 0)
+        {
+            return;
+        }
 
         int maxPerRequest = Math.Max(1, _options.MaxEventsPerRequest > 0 ? _options.MaxEventsPerRequest : 20); // GA hard limit 25
 
         for (int i = 0; i < eventsList.Count; i += maxPerRequest)
         {
             var slice = eventsList.Skip(i).Take(maxPerRequest).ToList();
-            if (slice.Count == 0) continue;
+            if (slice.Count == 0)
+            {
+                continue;
+            }
+
             var payload = BuildBatchPayload(slice);
             var content = new StringContent(payload, Encoding.UTF8, "application/json");
             // Let exceptions bubble so PeriodicBatchingSink can handle retries if configured
@@ -74,12 +83,20 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
         bool firstEvent = true;
         foreach (var e in events)
         {
-            if (!firstEvent) sb.Append(',');
+            if (!firstEvent)
+            {
+                sb.Append(',');
+            }
+
             firstEvent = false;
             sb.Append('{');
 
             var name = _options.EventNameResolver != null ? _options.EventNameResolver(e) : "log_event";
-            if (string.IsNullOrWhiteSpace(name)) name = "log_event";
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = "log_event";
+            }
+
             AppendJsonProperty(sb, "name", TrimIfNeeded(name), commaAfter: true);
             sb.Append("\"params\": {");
 
@@ -87,7 +104,10 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
             var paramPairs = new List<(string Key, object? Value)>();
             paramPairs.Add(("message", TrimIfNeeded(e.RenderMessage())));
             if (_options.MapLevelToParam)
+            {
                 paramPairs.Add(("level", e.Level.ToString()));
+            }
+
             paramPairs.Add(("timestamp", e.Timestamp.UtcDateTime.ToString("o")));
 
             if (_options.IncludeExceptionDetails && e.Exception != null)
@@ -99,7 +119,11 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
             {
                 foreach (var kvp in _options.GlobalParams)
                 {
-                    if (kvp.Key == null) continue;
+                    if (kvp.Key == null)
+                    {
+                        continue;
+                    }
+
                     paramPairs.Add((kvp.Key, kvp.Value));
                 }
             }
@@ -107,8 +131,16 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
             for (int i = 0; i < paramPairs.Count; i++)
             {
                 var (k, v) = paramPairs[i];
-                if (v == null) continue;
-                if (i > 0) sb.Append(',');
+                if (v == null)
+                {
+                    continue;
+                }
+
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+
                 AppendJsonProperty(sb, k, v, commaAfter: false);
             }
             sb.Append('}'); // params
@@ -121,7 +153,11 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
 
     private void AppendJsonProperty(StringBuilder sb, string key, object? value, bool commaAfter)
     {
-        if (value == null) return;
+        if (value == null)
+        {
+            return;
+        }
+
         sb.Append('"').Append(EscapeJson(key)).Append("\": ");
         switch (value)
         {
@@ -138,12 +174,19 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
                 sb.Append('"').Append(EscapeJson(TrimIfNeeded(value.ToString() ?? string.Empty))).Append('"');
                 break;
         }
-        if (commaAfter) sb.Append(',');
+        if (commaAfter)
+        {
+            sb.Append(',');
+        }
     }
 
     private string TrimIfNeeded(string value)
     {
-        if (value == null) return string.Empty;
+        if (value == null)
+        {
+            return string.Empty;
+        }
+
         int max = _options.MaxParamValueLength > 0 ? _options.MaxParamValueLength : 300;
         return value.Length <= max ? value : value.Substring(0, max);
     }
