@@ -128,6 +128,11 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
                 }
             }
 
+            // NEW: Map LogEvent.Properties into GA params if enabled
+            AddLogEventProperties(paramPairs, e);
+
+            // Write params (fixed comma handling)
+            int written = 0;
             for (int i = 0; i < paramPairs.Count; i++)
             {
                 var (k, v) = paramPairs[i];
@@ -136,13 +141,15 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
                     continue;
                 }
 
-                if (i > 0)
+                if (written > 0)
                 {
                     sb.Append(',');
                 }
 
                 AppendJsonProperty(sb, k, v, commaAfter: false);
+                written++;
             }
+
             sb.Append('}'); // params
             sb.Append('}'); // event
         }
@@ -202,6 +209,219 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
     public void Dispose()
     {
         _httpClient?.Dispose();
+    }
+
+    // --- NEW helpers for serializing LogEvent.Properties ---
+
+    private void AddLogEventProperties(List<(string Key, object? Value)> paramPairs, LogEvent e)
+    {
+        if (!_options.IncludeLogEventProperties || e.Properties == null || e.Properties.Count == 0)
+        {
+            return;
+        }
+
+        // Avoid duplicate keys with earlier params/global params
+        var existingKeys = new HashSet<string>(paramPairs.Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
+
+        int added = 0;
+        foreach (var kvp in e.Properties)
+        {
+            if (_options.IncludedPropertyNames != null && !_options.IncludedPropertyNames.Contains(kvp.Key))
+            {
+                continue;
+            }
+
+            var baseName = FormatParamName(kvp.Key);
+            AddPropertyValue(paramPairs, existingKeys, baseName, kvp.Value, ref added);
+
+            if (_options.MaxPropertyParamsPerEvent > 0 && added >= _options.MaxPropertyParamsPerEvent)
+            {
+                break;
+            }
+        }
+    }
+
+    private void AddPropertyValue(
+        List<(string Key, object? Value)> paramPairs,
+        HashSet<string> existingKeys,
+        string name,
+        LogEventPropertyValue value,
+        ref int addedCount)
+    {
+        // Respect cap
+        if (_options.MaxPropertyParamsPerEvent > 0 && addedCount >= _options.MaxPropertyParamsPerEvent)
+        {
+            return;
+        }
+
+        switch (value)
+        {
+            case ScalarValue scalar:
+                var (scalarValue, isNull) = ConvertScalar(scalar);
+                if (!isNull)
+                {
+                    TryAdd(paramPairs, existingKeys, name, scalarValue, ref addedCount);
+                }
+                break;
+
+            case StructureValue sv:
+                if (_options.FlattenStructuredProperties)
+                {
+                    foreach (var p in sv.Properties)
+                    {
+                        if (_options.MaxPropertyParamsPerEvent > 0 && addedCount >= _options.MaxPropertyParamsPerEvent)
+                            break;
+
+                        var childName = CombineNames(name, p.Name);
+                        AddPropertyValue(paramPairs, existingKeys, childName, p.Value, ref addedCount);
+                    }
+                }
+                else
+                {
+                    // Stringify complex value
+                    TryAdd(paramPairs, existingKeys, name, TrimIfNeeded(value.ToString() ?? string.Empty), ref addedCount);
+                }
+                break;
+
+            case DictionaryValue dv:
+                if (_options.FlattenStructuredProperties)
+                {
+                    foreach (var kv in dv.Elements)
+                    {
+                        if (_options.MaxPropertyParamsPerEvent > 0 && addedCount >= _options.MaxPropertyParamsPerEvent)
+                            break;
+
+                        var keyText = kv.Key.Value?.ToString() ?? "key";
+                        var childName = CombineNames(name, keyText);
+                        AddPropertyValue(paramPairs, existingKeys, childName, kv.Value, ref addedCount);
+                    }
+                }
+                else
+                {
+                    TryAdd(paramPairs, existingKeys, name, TrimIfNeeded(value.ToString() ?? string.Empty), ref addedCount);
+                }
+                break;
+
+            case SequenceValue seq:
+                if (_options.FlattenStructuredProperties)
+                {
+                    int idx = 0;
+                    foreach (var item in seq.Elements)
+                    {
+                        if (_options.MaxPropertyParamsPerEvent > 0 && addedCount >= _options.MaxPropertyParamsPerEvent)
+                            break;
+
+                        var childName = CombineNames(name, idx.ToString());
+                        AddPropertyValue(paramPairs, existingKeys, childName, item, ref addedCount);
+                        idx++;
+                    }
+                }
+                else
+                {
+                    TryAdd(paramPairs, existingKeys, name, TrimIfNeeded(value.ToString() ?? string.Empty), ref addedCount);
+                }
+                break;
+
+            default:
+                TryAdd(paramPairs, existingKeys, name, TrimIfNeeded(value.ToString() ?? string.Empty), ref addedCount);
+                break;
+        }
+    }
+
+    private (object? Value, bool IsNull) ConvertScalar(ScalarValue scalar)
+    {
+        var v = scalar.Value;
+        if (v == null) return (null, true);
+
+        switch (v)
+        {
+            case string s:
+                return (TrimIfNeeded(s), false);
+            case bool b:
+                return (b, false);
+            case sbyte or byte or short or ushort or int or uint or long or ulong:
+                // GA likes numeric params as numbers
+                return (Convert.ToInt64(v, System.Globalization.CultureInfo.InvariantCulture), false);
+            case float or double or decimal:
+                return (Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture), false);
+            case DateTime dt:
+                return (dt.ToUniversalTime().ToString("o"), false);
+            case DateTimeOffset dto:
+                return (dto.ToUniversalTime().ToString("o"), false);
+            case Guid g:
+                return (g.ToString("D"), false);
+            default:
+                return (TrimIfNeeded(v.ToString() ?? string.Empty), false);
+        }
+    }
+
+    private void TryAdd(
+        List<(string Key, object? Value)> paramPairs,
+        HashSet<string> existingKeys,
+        string key,
+        object? value,
+        ref int addedCount)
+    {
+        if (value == null) return;
+
+        // Avoid overwriting existing keys (message, level, timestamp, etc.)
+        if (!existingKeys.Contains(key))
+        {
+            paramPairs.Add((key, value));
+            existingKeys.Add(key);
+            addedCount++;
+        }
+    }
+
+    private string CombineNames(string a, string b)
+    {
+        var sep = string.IsNullOrEmpty(_options.FlattenSeparator) ? "_" : _options.FlattenSeparator;
+        return FormatParamName(a + sep + b);
+    }
+
+    private string FormatParamName(string name)
+    {
+        // Allow user customization first
+        if (_options.PropertyNameFormatter != null)
+        {
+            var custom = _options.PropertyNameFormatter(name);
+            if (!string.IsNullOrWhiteSpace(custom))
+            {
+                name = custom!;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = "p";
+        }
+
+        // Allowed: letters, digits, underscore; ensure starts with a letter
+        var sb = new StringBuilder(name.Length + 2);
+        if (!char.IsLetter(name[0]))
+        {
+            sb.Append("p_");
+        }
+        for (int i = 0; i < name.Length; i++)
+        {
+            var ch = name[i];
+            if (char.IsLetterOrDigit(ch) || ch == '_')
+            {
+                sb.Append(ch);
+            }
+            else
+            {
+                sb.Append('_');
+            }
+        }
+
+        var result = sb.ToString();
+        int max = _options.MaxParamNameLength > 0 ? _options.MaxParamNameLength : 40;
+        if (result.Length > max)
+        {
+            result = result.Substring(0, max);
+        }
+        return result;
     }
 }
 

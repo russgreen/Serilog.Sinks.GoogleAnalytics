@@ -43,7 +43,8 @@ internal static class Host
                 opts.FlushPeriod = TimeSpan.FromSeconds(1);
                 opts.BatchSizeLimit = 1;
                 opts.MaxEventsPerRequest = 1;
-                opts.IncludePredicate = e => e.Properties.ContainsKey("UsageTracking");            
+                opts.IncludePredicate = e => e.Properties.ContainsKey("UsageTracking");         
+                opts.IncludeLogEventProperties = true;
 
                 opts.GlobalParams["app_version"] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString();
                 opts.GlobalParams["app_country"] = regionInfo.EnglishName;

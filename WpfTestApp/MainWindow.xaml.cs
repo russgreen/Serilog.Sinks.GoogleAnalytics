@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     {
         using (LogContext.PushProperty("UsageTracking", true))
         {
-            _logger.LogInformation("Logged information");
+            _logger.LogInformation("{log_message}", "Logged information");
         }
 
     }
@@ -39,7 +39,7 @@ public partial class MainWindow : Window
     {
         using (LogContext.PushProperty("UsageTracking", true))
         {
-            _logger.LogWarning("Logged warning");
+            _logger.LogWarning("{log_message}", "Logged warning");
         }
 
     }
@@ -48,7 +48,7 @@ public partial class MainWindow : Window
     {
         using (LogContext.PushProperty("UsageTracking", true))
         {
-            _logger.LogError("Logged error");
+            _logger.LogError("{log_message}", "Logged error");
         }
 
     }
@@ -57,7 +57,7 @@ public partial class MainWindow : Window
     {
         using (LogContext.PushProperty("UsageTracking", true))
         {
-            _logger.LogCritical("Logged critical");
+            _logger.LogCritical("{log_message}", "Logged critical");
         }
 
     }
