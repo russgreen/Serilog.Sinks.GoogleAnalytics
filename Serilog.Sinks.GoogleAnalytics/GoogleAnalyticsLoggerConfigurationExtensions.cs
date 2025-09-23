@@ -18,8 +18,15 @@ public static class GoogleAnalyticsLoggerConfigurationExtensions
             Action<GoogleAnalyticsOptions> configure,
             Serilog.Events.LogEventLevel restrictedToMinimumLevel = Serilog.Events.LogEventLevel.Information)
     {
-        if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        if (sinkConfiguration == null)
+        {
+            throw new ArgumentNullException(nameof(sinkConfiguration));
+        }
+
+        if (configure == null)
+        {
+            throw new ArgumentNullException(nameof(configure));
+        }
 
         var opts = new GoogleAnalyticsOptions();
         configure(opts);
