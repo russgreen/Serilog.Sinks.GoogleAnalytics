@@ -4,7 +4,7 @@ Send Serilog log events to Google Analytics 4 (GA4) via the Measurement Protocol
 
 This sink batches log events and posts them as GA4 events, enabling lightweight operational or product usage telemetry without running your own ingestion stack.
 
-> GA4 Measurement Protocol is designed for analytics, not for high?volume diagnostic logging. Use this sink for low/medium volume, non?personal, aggregate insights.
+> GA4 Measurement Protocol is designed for analytics, not for high-volume diagnostic logging. Use this sink for low/medium volume, non-personal, aggregate insights.
 
 ## Features
 
@@ -17,7 +17,8 @@ This sink batches log events and posts them as GA4 events, enabling lightweight 
 - Global (static) parameters sent with every event
 - Level mapping to parameter
 - Param value length trimming
-- Non?personalized ads flag support
+- Non-personalized ads flag support
+- Optional projection of `LogEvent` properties into GA parameters (with flattening, whitelist, naming, and caps)
 
 ## Quick Start
 
@@ -42,6 +43,14 @@ var logger = new LoggerConfiguration()
         // opts.EventNameResolver = e => e.Level == LogEventLevel.Error ? "error_log" : "app_log";
         // opts.IncludePredicate  = e => e.Level >= LogEventLevel.Information;
         // opts.GlobalParams["app_version"] = typeof(Program).Assembly.GetName().Version?.ToString();
+
+        // Optional: project LogEvent properties to GA parameters
+        // opts.IncludeLogEventProperties   = true;
+        // opts.IncludedPropertyNames      = new HashSet<string> { "RequestId", "UserId" };
+        // opts.FlattenStructuredProperties = true;   // expand objects/dicts/sequences
+        // opts.FlattenSeparator            = "_";    // join nested names
+        // opts.MaxPropertyParamsPerEvent   = 10;      // cap added params from properties
+        // opts.PropertyNameFormatter       = name => ToSnakeCase(name); // custom mapping
     })
     .CreateLogger();
 
@@ -59,22 +68,29 @@ Log.CloseAndFlush();
 
 `GoogleAnalyticsOptions` properties:
 
-| Property              | Description                                                               | Default                                                                                                                                                     |
-|-----------------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| MeasurementId         | GA4 Measurement ID (required)                                            | (none)                                                                                                                                                      |
-| ApiSecret             | GA4 API Secret (required)                                               | (none)                                                                                                                                                      |
-| ClientId              | Stable anonymous client identifier. If blank, derived from machine name hash. | (auto)                                                                                                                                                      |
-| EventNameResolver     | `Func<LogEvent,string>` to pick event name per log                       | `"log_event"`                                                                                                                                              |
-| IncludePredicate      | Predicate to include events                                               | `null` (all)                                                                                                                                              |
-| IncludeExceptionDetails | Include exception type/message params                                     | `true`                                                                                                                                                     |
-| NonPersonalizedAds    | Sets `non_personalized_ads` flag                                         | `false`                                                                                                                                                    |
-| MaxEventsPerRequest   | Upper bound per HTTP post (GA max 25)                                   | `20`                                                                                                                                                       |
-| MaxParamValueLength   | Trim parameter string values to length                                    | `300`                                                                                                                                                      |
-| GlobalParams          | Extra key/value pairs always sent                                        | empty                                                                                                                                                       |
-| MapLevelToParam      | Adds `level` param                                                        | `true`                                                                                                                                                     |
-| FlushPeriod           | Batch flush period                                                        | 5s                                                                                                                                                         |
-| BatchSizeLimit        | Upper bound events kept per internal batch before emission (PeriodicBatching) | 40                                                                                                                                                          |
-| RetryCount            | (Reserved for future explicit retry policy)                              | 2                                                                                                                                                           |
+| Property                   | Description                                                                                      | Default |
+|---------------------------|--------------------------------------------------------------------------------------------------|---------|
+| MeasurementId             | GA4 Measurement ID (required)                                                                    | (none)  |
+| ApiSecret                 | GA4 API Secret (required)                                                                        | (none)  |
+| ClientId                  | Stable anonymous client identifier. If blank, derived from machine name hash.                   | (auto)  |
+| EventNameResolver         | `Func<LogEvent,string>` to pick event name per log                                               | `"log_event"` |
+| IncludePredicate          | Predicate to include events                                                                      | `null` (all) |
+| IncludeExceptionDetails   | Include exception type/message params                                                            | `true`  |
+| NonPersonalizedAds        | Sets `non_personalized_ads` flag                                                                 | `false` |
+| MaxEventsPerRequest       | Upper bound per HTTP post (GA max 25)                                                            | `20`    |
+| MaxParamValueLength       | Trim parameter string values to length                                                           | `300`   |
+| GlobalParams              | Extra key/value pairs always sent                                                                 | empty   |
+| MapLevelToParam           | Adds `level` param                                                                               | `true`  |
+| FlushPeriod               | Batch flush period                                                                               | 5s      |
+| BatchSizeLimit            | Upper bound events kept per internal batch before emission (PeriodicBatching)                    | 40      |
+| RetryCount                | (Reserved for future explicit retry policy)                                                      | 2       |
+| IncludeLogEventProperties | Include `LogEvent.Properties` as event parameters                                                | `false` |
+| IncludedPropertyNames     | If set, only these property names are included                                                   | `null`  |
+| PropertyNameFormatter     | `Func<string,string>` mapping Serilog property name -> GA param name                             | `null`  |
+| FlattenStructuredProperties | If `true`, flatten `StructureValue`/`DictionaryValue`/`SequenceValue`; else stringify complex values | `true`  |
+| FlattenSeparator          | Separator joining nested names when flattening                                                   | `_`     |
+| MaxParamNameLength        | Trim GA parameter names to this length (GA max 40)                                              | `40`    |
+| MaxPropertyParamsPerEvent | Upper bound of parameters added from `LogEvent.Properties` per event                             | `10`    |
 
 ### Event Parameters Emitted
 
@@ -85,7 +101,40 @@ Baseline parameters (when available):
 - `timestamp` (ISO 8601 UTC)
 - `exception_type` / `exception_message` (if exception + enabled)
 - Any `GlobalParams`
-- Any properties you add manually via `GlobalParams` or additional resolver logic (currently the sink does not serialise individual LogEvent properties; you can embed them into the rendered message or extend the sink).
+- Any `LogEvent` properties projected to GA parameters (if `IncludeLogEventProperties`), subject to filtering/flattening/naming rules below
+
+### Property Projection (optional)
+
+If `IncludeLogEventProperties` is enabled, `LogEvent.Properties` are mapped to GA parameters:
+
+- Scalars map to native GA types when possible: numbers/bools sent as JSON numbers/bools; strings trimmed by `MaxParamValueLength`.
+- Structured values (objects/dictionaries/sequences) are flattened into multiple parameters when `FlattenStructuredProperties = true`. Nested names are joined with `FlattenSeparator` (default `_`).
+- If flattening is disabled, structured values are stringified into a single parameter.
+- Parameter names are normalized: must start with a letter, only letters/digits/underscore, and trimmed to `MaxParamNameLength` (default 40). You can customize via `PropertyNameFormatter`.
+- To avoid excessive payloads, the sink de-duplicates keys and caps the number of parameters added from properties via `MaxPropertyParamsPerEvent` (default 10).
+- Use `IncludedPropertyNames` to whitelist only specific property names.
+
+Example:
+
+```csharp
+opts.IncludeLogEventProperties   = true;
+opts.IncludedPropertyNames      = new HashSet<string> { "Request", "UserId" };
+opts.FlattenStructuredProperties = true;
+opts.FlattenSeparator            = "_";
+
+logger.Information(
+    "Handled request {Request} for {UserId}",
+    new { Method = "GET", Path = "/orders", StatusCode = 200 },
+    "anon-123");
+```
+
+Emitted event parameters include (illustrative):
+
+- `message`: "Handled request GET /orders for anon-123"
+- `request_method`: "GET"
+- `request_path`: "/orders"
+- `request_statuscode`: 200
+- `userid`: "anon-123" (actual casing depends on your `PropertyNameFormatter`)
 
 ### Batching Behavior
 
@@ -123,7 +172,7 @@ opts.GlobalParams["region"]  = Environment.GetEnvironmentVariable("REGION") ?? "
 
 Long string parameter values are truncated to `MaxParamValueLength` to avoid GA rejection.
 
-### Non?Personalized Ads
+### Non-personalized Ads
 
 Set `NonPersonalizedAds = true` to add `"non_personalized_ads": true` to root payload (see GA4 docs).
 
@@ -156,6 +205,8 @@ loggerConfiguration.WriteTo.GoogleAnalytics(opts =>
 ## GA4 Limits & Considerations
 
 - Max 25 events per request (enforced by sink subdivision)
+- Event parameter names should be <= 40 chars, start with a letter, and contain only letters/digits/underscore (the sink normalizes and trims)
+- GA may drop/reject events with too many parameters or oversized payloads; tune `MaxPropertyParamsPerEvent` and trimming accordingly
 - Excessive volume or PII can violate GA Terms – ensure compliance
 - GA4 is analytics-focused; delivery latency is not guaranteed
 - GA sampling / retention policies apply
@@ -166,10 +217,10 @@ Do not send personally identifiable information (PII). Use stable, anonymous ide
 
 ## Extensibility Ideas
 
-- Serialize individual `LogEvent` properties into GA parameters (current minimal implementation avoids GA param count inflation)
-- Add custom retry / backoff strategy
+- Additional property mapping helpers (e.g., built-in snake_case formatter)
+- Configurable backoff/retry policy
 - Async queue with backpressure for high spikes
-- Structured property flattening with name whitelist
+- Structured property flattening with advanced rules
 
 ## Testing
 
@@ -179,11 +230,11 @@ Run the test project:
 dotnet test -c Release
 ```
 
-Tests cover option validation, payload shaping, trimming, exception inclusion, custom event naming.
+Tests cover option validation, payload shaping, trimming, exception inclusion, custom event naming, and property projection.
 
 ## Version Compatibility
 
-- Library: .NET Standard 2.0 (works on .NET Framework 4.6.1+, .NET Core 2.0+, .NET 5/6/7/8)
+- Library: .NET Standard 2.0 (works on .NET Framework 4.6.1+, .NET Core 2.0+, .NET 5.0+)
 - Tests: .NET 8.0
 
 ## Example Dashboarding
@@ -194,15 +245,14 @@ After events appear in GA4 (can take a few minutes), create custom reports filte
 
 | Symptom              | Cause                                    | Action                                                                                       |
 |----------------------|------------------------------------------|----------------------------------------------------------------------------------------------|
-| Events not visible   | Propagation delay                       | Wait up to several minutes                                                                    |
-| Completely missing   | Invalid Measurement ID / API Secret     | Verify GA4 Admin settings                                                                      |
-| Some events missing  | GA rejection (too many params / size)   | Reduce message size or param count                                                             |
-| High latency         | Batch period too large                   | Reduce `FlushPeriod`                                                                          |
-| 429 / 5xx responses | GA throttling                            | Reduce volume / add backoff (future enhancement)                                            |
+| Events not visible   | Propagation delay                         | Wait up to several minutes                                                                   |
+| Completely missing   | Invalid Measurement ID / API Secret       | Verify GA4 Admin settings                                                                    |
+| Some events missing  | GA rejection (too many params / size)     | Reduce message size or param count                                                           |
+| High latency         | Batch period too large                    | Reduce `FlushPeriod`                                                                          |
+| 429 / 5xx responses  | GA throttling                             | Reduce volume / add backoff (future enhancement)                                            |
 
 ## Roadmap
 
-- Optional property projection
 - Configurable backoff/retry policy
 - Telemetry for sink health (dropped events count)
 - Async `HttpClientFactory` integration
@@ -217,8 +267,8 @@ This project is not an official Google product. Use at your own risk and ensure 
 
 ## License
 
-(Choose and add a license file – e.g., MIT, Apache-2.0.)
+MIT
 
 ---
-Made with Serilog ? and the GA4 Measurement Protocol.
+Made with Serilog and the GA4 Measurement Protocol.
 
