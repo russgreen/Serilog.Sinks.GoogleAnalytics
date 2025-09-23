@@ -207,7 +207,7 @@ loggerConfiguration.WriteTo.GoogleAnalytics(opts =>
 - Max 25 events per request (enforced by sink subdivision)
 - Event parameter names should be <= 40 chars, start with a letter, and contain only letters/digits/underscore (the sink normalizes and trims)
 - GA may drop/reject events with too many parameters or oversized payloads; tune `MaxPropertyParamsPerEvent` and trimming accordingly
-- Excessive volume or PII can violate GA Terms – ensure compliance
+- Excessive volume or PII can violate GA Terms Â– ensure compliance
 - GA4 is analytics-focused; delivery latency is not guaranteed
 - GA sampling / retention policies apply
 
@@ -266,7 +266,6 @@ PRs & issues welcome. Please add/extend unit tests for new behaviors.
 This project is not an official Google product. Use at your own risk and ensure compliance with Google Analytics Terms of Service.
 
 ## License
-
 MIT
 
 ---

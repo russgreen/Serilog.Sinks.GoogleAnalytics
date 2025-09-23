@@ -12,7 +12,7 @@
 		<PackageType>Dependency</PackageType>
 		<PackageId>Serilog.Sinks.GoogleAnalytics</PackageId>
 		<Authors>Russ Green</Authors>
-		<Description>AppCenter sink for Serilog updated to latest AppCenter dependancies.</Description>
+		<Description>Google Analytics sink for Serilog.</Description>
 		<!--<GeneratePackageOnBuild>True</GeneratePackageOnBuild>-->
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
