@@ -75,11 +75,27 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
         var sb = new StringBuilder();
         sb.Append('{');
         AppendJsonProperty(sb, "client_id", _options.ClientId, commaAfter: true);
+        
         if (_options.NonPersonalizedAds)
         {
             sb.Append("\"non_personalized_ads\": true,");
         }
+
+        bool hasUserLocation = HasUserLocation();
+        if (hasUserLocation)
+        {
+            sb.Append("\"user_location\": {");
+            bool first = true;
+            first = AppendUserLocationField(sb, "city", _options.City, first);
+            first = AppendUserLocationField(sb, "region_id", _options.RegionId, first);
+            first = AppendUserLocationField(sb, "country_id", _options.CountryId, first);
+            first = AppendUserLocationField(sb, "subcontinent_id", _options.SubcontinentId, first);
+            first = AppendUserLocationField(sb, "continent_id", _options.ContinentId, first);
+            sb.Append("},");
+        }
+
         sb.Append("\"events\": [");
+
         bool firstEvent = true;
         foreach (var e in events)
         {
@@ -185,6 +201,33 @@ public class GoogleAnalyticsSink : Serilog.Sinks.PeriodicBatching.IBatchedLogEve
         {
             sb.Append(',');
         }
+    }
+
+    private bool HasUserLocation()
+    {
+        return !(string.IsNullOrWhiteSpace(_options.City)
+                 && string.IsNullOrWhiteSpace(_options.RegionId)
+                 && string.IsNullOrWhiteSpace(_options.CountryId)
+                 && string.IsNullOrWhiteSpace(_options.SubcontinentId)
+                 && string.IsNullOrWhiteSpace(_options.ContinentId));
+    }
+
+    private bool AppendUserLocationField(StringBuilder sb, string key, string value, bool first)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return first;
+        }
+
+        if (!first)
+        {
+            sb.Append(',');
+        }
+
+        sb.Append('"').Append(EscapeJson(key)).Append("\": ");
+        sb.Append('"').Append(EscapeJson(TrimIfNeeded(value))).Append('"');
+
+        return false;
     }
 
     private string TrimIfNeeded(string value)

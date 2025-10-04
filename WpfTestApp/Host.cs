@@ -48,6 +48,8 @@ internal static class Host
 
                 opts.GlobalParams["app_version"] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString();
                 opts.GlobalParams["app_country"] = regionInfo.EnglishName;
+
+                opts.CountryId = regionInfo.TwoLetterISORegionName;
             })
             .CreateLogger();
 

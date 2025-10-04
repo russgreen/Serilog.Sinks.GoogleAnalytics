@@ -91,6 +91,12 @@ Log.CloseAndFlush();
 | FlattenSeparator          | Separator joining nested names when flattening                                                   | `_`     |
 | MaxParamNameLength        | Trim GA parameter names to this length (GA max 40)                                              | `40`    |
 | MaxPropertyParamsPerEvent | Upper bound of parameters added from `LogEvent.Properties` per event                             | `10`    |
+| City                      | The city's name. If the city is in the US, also set country_id and region_id so Google Analytics can properly map the city name to a city ID.                                                   | `null`  |
+| RegionId                  | The ISO 3166 country and subdivision. For example, US-CA, US-AR, CA-BC, GB-LND, CN-HK.                                                   | `null`  |
+| CountryId                 | The country in ISO 3166-1 alpha-2 format. For example, US, AU, ES, FR.                                                   | `null`  |
+| SubcontinentId            | The subcontinent in UN M49 format. For example, 011, 021, 030, 039.                                                   | `null`  |
+| ContinentId               | The continent in UN M49 format. For example, 002, 019, 142, 150.                                                   | `null`  |
+
 
 ### Event Parameters Emitted
 
