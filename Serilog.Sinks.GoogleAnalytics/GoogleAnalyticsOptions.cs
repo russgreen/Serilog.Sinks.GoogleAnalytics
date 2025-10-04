@@ -19,7 +19,7 @@ public class GoogleAnalyticsOptions
     public int BatchSizeLimit { get; set; } = 40; // batches subdivided before send
     public int RetryCount { get; set; } = 2;
 
-    // NEW: control serializing LogEvent.Properties into GA params
+    // control serializing LogEvent.Properties into GA params
     public bool IncludeLogEventProperties { get; set; } = false;
 
     // If set, only these property names are included; otherwise all properties are considered.
@@ -40,4 +40,10 @@ public class GoogleAnalyticsOptions
 
     // Limit how many parameters we add from LogEvent properties to avoid exceeding GA limits.
     public int MaxPropertyParamsPerEvent { get; set; } = 10;
+
+    public string City { get; set; }
+    public string RegionId { get; set; }
+    public string CountryId { get; set; }
+    public string SubcontinentId { get; set; }
+    public string ContinentId { get; set; }
 }
