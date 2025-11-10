@@ -257,12 +257,6 @@ After events appear in GA4 (can take a few minutes), create custom reports filte
 | High latency         | Batch period too large                    | Reduce `FlushPeriod`                                                                          |
 | 429 / 5xx responses  | GA throttling                             | Reduce volume / add backoff (future enhancement)                                            |
 
-## Roadmap
-
-- Configurable backoff/retry policy
-- Telemetry for sink health (dropped events count)
-- Async `HttpClientFactory` integration
-
 ## Contributing
 
 PRs & issues welcome. Please add/extend unit tests for new behaviors.
