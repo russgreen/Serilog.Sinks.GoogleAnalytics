@@ -1,11 +1,6 @@
 ﻿using Nuke.Common;
 using Nuke.Common.Git;
-using Nuke.Common.IO;
 using Nuke.Common.Tools.DotNet;
-using Serilog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 partial class Build
 {
@@ -14,7 +9,7 @@ partial class Build
         .OnlyWhenStatic(() => GitRepository.IsOnMainOrMasterBranch())
         .Executes(() =>
         {
-            var packConfigurations = GlobBuildConfigurations();
+            var packConfigurations = Solution.GetModel().BuildTypes;
 
             foreach (var configuration in packConfigurations)
             {
@@ -22,7 +17,7 @@ partial class Build
                 {
                     DotNetPack(settings => settings
                         .SetConfiguration(configuration)
-                        .SetOutputDirectory(ArtifactsDirectory)
+                        .SetOutputDirectory(OutputDirectory)
                         .SetVerbosity(DotNetVerbosity.minimal));
                 }
 

@@ -5,11 +5,13 @@ using Nuke.Common.ProjectModel;
 
 partial class Build : NukeBuild
 {
-    readonly AbsolutePath ArtifactsDirectory = RootDirectory / "output";
+    readonly AbsolutePath OutputDirectory = RootDirectory / "output";
+    readonly AbsolutePath SourceDirectory = RootDirectory / "source";
 
     readonly string[] CompiledAssemblies = { "Serilog.Sinks.GoogleAnalytics.dll" };
 
     [GitRepository]
+    [Required]
     readonly GitRepository GitRepository;
 
     [Solution(GenerateProjects = true)]

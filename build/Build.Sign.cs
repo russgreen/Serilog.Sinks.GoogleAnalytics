@@ -6,7 +6,6 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Nuke.Common.Tools.SignTool.SignToolTasks;
 
 partial class Build
@@ -18,9 +17,7 @@ partial class Build
         {
             var compiledAssemblies = new List<string>();
 
-            //var project = Solution.Transmittal;
-
-            foreach (var project in Solution.AllProjects.Where(project => project == Solution.Serilog_Sinks_GoogleAnalytics))
+            foreach (var project in Solution.AllProjects.Where(project => project.Name.Equals("Serilog_Sinks_GoogleAnalytics", StringComparison.OrdinalIgnoreCase)))
             {
                 AbsolutePath projectDirectory = project.Directory;
                 Log.Information(projectDirectory);

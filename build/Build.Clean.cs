@@ -1,28 +1,12 @@
 ﻿using Nuke.Common;
 using Nuke.Common.IO;
-using Nuke.Common.ProjectModel;
-using Nuke.Common.Tools.DotNet;
-using Serilog;
-using System.Linq;
-using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 partial class Build
 {
     Target Clean => _ => _
     .Executes(() =>
     {
-        CleanDirectory(ArtifactsDirectory);
-
-        foreach (var project in Solution.AllProjects.Where(project => project != Solution._build))
-        {
-            CleanDirectory(project.Directory / "bin");
-            CleanDirectory(project.Directory / "obj");
-        }
+        SourceDirectory.GlobDirectories("*/bin", "*/obj").DeleteDirectories();
+        OutputDirectory.CreateOrCleanDirectory();
     });
-
-    static void CleanDirectory(AbsolutePath path)
-    {
-        Log.Information("Cleaning directory: {Directory}", path);
-        path.CreateOrCleanDirectory();
-    }
 }
