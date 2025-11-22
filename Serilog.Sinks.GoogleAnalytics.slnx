@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="build/_build.csproj">
+    <Build Project="false" />
+  </Project>
+  <Project Path="Serilog.Sinks.GoogleAnalytics.Tests/Serilog.Sinks.GoogleAnalytics.Tests.csproj" />
+  <Project Path="Serilog.Sinks.GoogleAnalytics/Serilog.Sinks.GoogleAnalytics.csproj" />
+  <Project Path="WpfTestApp/WpfTestApp.csproj">
+    <Build Solution="Release|*" Project="false" />
+  </Project>
+</Solution>
